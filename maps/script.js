@@ -73,7 +73,12 @@ async function init() {
 
   const saveLocalButton = document.querySelector("#save-local-button");
   saveLocalButton.addEventListener("click", () => {
-    const location = document.querySelector("#map iframe").src;
+    const mapIframe = document.querySelector("#map iframe");
+    if (!mapIframe) {
+      console.error("Map iframe not found. Cannot save state.");
+      return;
+    }
+    const location = mapIframe.src;
     const caption = document.querySelector("#caption p")?.textContent || "";
     const content = `Location: ${location}\nCaption: ${caption}`;
     const blob = new Blob([content], { type: "text/plain" });
