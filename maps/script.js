@@ -54,11 +54,20 @@ const chat = async (userText) => {
 
     if (call) {
       functionDeclarations[0].callback(call.args);
+    } else {
+      const geminiResponse = response.text();
+      messagesDiv.innerHTML += `<p><b>Gemini:</b> ${geminiResponse}</p>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      
+      // Text-to-speech for Gemini's response
+      const utterance = new SpeechSynthesisUtterance(geminiResponse);
+      window.speechSynthesis.speak(utterance);
     }
   } catch (e) {
     console.error(e);
-  }
-};
+    messagesDiv.innerHTML += `<p><b>Gemini:</b> Error: ${e.message}</p>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  };
 
 async function init() {
   renderPage("%"); // Start by rendering with empty location query: shows earth
@@ -84,6 +93,58 @@ async function init() {
     a.click();
     URL.revokeObjectURL(url);
   });
+
+  const chatInput = document.querySelector("#chat-input");
+  const sendButton = document.querySelector("#send-button");
+  const messagesDiv = document.querySelector("#messages");
+  const voiceInputButton = document.querySelector("#voice-input-button");
+
+  const sendMessage = async () => {
+    const userText = chatInput.value;
+    if (userText.trim() === "") return;
+
+    messagesDiv.innerHTML += `<p><b>You:</b> ${userText}</p>`;
+    chatInput.value = "";
+    await chat(userText);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  };
+
+  sendButton.addEventListener("click", sendMessage);
+  chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      sendMessage();
+    }
+  });
+
+  const handleVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.addEventListener('result', (e) => {
+      const transcript = Array.from(e.results)
+        .map(result => result[0])
+        .map(result => result.transcript)
+        .join('');
+      chatInput.value = transcript;
+      sendMessage();
+    });
+
+    recognition.addEventListener('error', (e) => {
+      console.error('Speech recognition error:', e.error);
+      alert('Speech recognition error: ' + e.error);
+    });
+
+    recognition.start();
+  };
+
+  voiceInputButton.addEventListener("click", handleVoiceInput);
 }
 
 init();
